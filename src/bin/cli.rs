@@ -3,14 +3,12 @@ use std::io::{self, Write};
 
 #[path="../lib.rs"]
 mod lib;
+use lib::RockDB;
 
 fn main() {
-    let mapping = lib::load("description-database.txt");
-    
-    // for (fragment, abbr) in &mapping {
-    //    println!("{} = {}", fragment, abbr);
-    // }
-    // println!("{}", mapping.len());
+    let mut db = RockDB::new();
+    db.load("description-database.txt");
+    // println!("{}", db);
     
     println!("Enter geology descriptions: ");
     println!("Comma separated, type 'q' to quit.");
@@ -22,7 +20,7 @@ fn main() {
         
         println!("");
         println!("The acronyms are:");
-        println!("{}", lib::replace_list(&mapping, &phrases));
+        println!("{}", db.replace_list(phrases.split(",")));
         println!("");
     }
     

@@ -1,63 +1,94 @@
+extern crate regex;
 
+use std::fmt;
 use std::fs;
-use regex::Regex;
 use std::collections::HashMap;
+use regex::Regex;
 
-pub type Mapping = HashMap<String, String>;
+type Mapping = HashMap<String, String>;
 
-pub fn replace_list(mapping: &Mapping, phrases: &String) -> String {
-    let mut converted: Vec<String> = Vec::new();
-    
-    for phrase in phrases.split(",") {
-        let trimmed = String::from(phrase.trim());
-        converted.push(replace(&mapping, &trimmed));
-    }
-    
-    return converted.join(", ");
+pub struct RockDB {
+    phrases: Vec<String>,
+    map: Mapping,
 }
 
-
-pub fn load(path: &str) -> Mapping {
-    let re = Regex::new("[\n\r]").unwrap();
+impl RockDB {
+    pub fn new() -> RockDB {
+        RockDB {
+            phrases: Vec::new(),
+            map: HashMap::new(),
+        }
+    }
     
-    let mut map: Mapping = HashMap::new();
-    
-    let contents = fs::read_to_string(path).expect("Failed to database file");
-    let contents = String::from(re.replace_all(contents.as_ref(), ""));
-    
-    for token in contents.split(",") {
-        let mut name = String::new();
+    pub fn load(&mut self, path: &str) {
+        let re = Regex::new("[\n\r]").unwrap();
         
-        for part in token.split("=") {
-            if name.is_empty() {
-                name = String::from(part.trim());
-            }
-            else {
-                map.insert(String::from(part.trim()), name.clone());
+        let contents = String::from(re.replace_all(
+            fs::read_to_string(path)
+                .expect("Failed to database file")
+                .as_ref(),
+            ""));
+        
+        for token in contents.split(",") {
+            let mut abbr = String::new();
+            
+            for part in token.split("=") {
+                if abbr.is_empty() {
+                    abbr = String::from(part.trim());
+                }
+                else {
+                    let phrase = String::from(part.trim());
+                    self.phrases.push(phrase.clone());
+                    self.map.insert(phrase, abbr.clone());
+                }
             }
         }
-    }
-    
-    let mut extra: Mapping = HashMap::new();
-    
-    for (phrase, abbr) in &map {
-        if phrase.contains(" ") {
-            extra.insert(replace(&map, phrase), abbr.to_string());
+        
+        // Sort longest to shortest.
+        self.phrases.sort_by(|a, b| b.len().cmp(&a.len()));
+        
+        let mut extra: Mapping = HashMap::new();
+        
+        for (phrase, abbr) in &self.map {
+            if phrase.contains(" ") {
+                extra.insert(self.replace(phrase), abbr.to_string());
+            }
         }
+        
+        self.map.extend(extra);
     }
     
-    return map;
+    pub fn replace(&self, phrase: &String) -> String {
+        let mut updated = phrase.clone();
+        
+        for phrase in &self.phrases {
+            if updated.contains(phrase) {
+                let abbr = self.map.get(phrase).unwrap();
+                updated = updated.replace(phrase, abbr);
+            }
+        }
+        
+        return updated.replace(" to ", "-");
+    }
+    
+    pub fn replace_list<'a>(&self, phrases: impl Iterator<Item=&'a str>) -> String {
+        let mut converted: Vec<String> = Vec::new();
+        
+        for phrase in phrases {
+            let trimmed = String::from(phrase.trim());
+            converted.push(self.replace(&trimmed));
+        }
+        
+        return converted.join(", ");
+    }
+    
 }
 
-
-pub fn replace(map: &Mapping, phrase: &String) -> String {
-    let mut updated = phrase.clone();
-    
-    for (fragment, abbr) in map {
-        if updated.contains(fragment) {
-            updated = updated.replace(fragment, abbr);
+impl fmt::Display for RockDB {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for (fragment, abbr) in &self.map {
+            write!(f, "{} = {}\n", fragment, abbr)?;
         }
+        write!(f, "")
     }
-    // println!("{}", updated);
-    return updated.replace(" to ", "-");
 }
