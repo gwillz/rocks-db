@@ -10,75 +10,102 @@ use std::io::{Error, ErrorKind};
 type Mapping = HashMap<String, String>;
 
 lazy_static! {
-    static ref RE: Regex = Regex::new("[\n\r]").unwrap();
+    static ref CLEAN: Regex = Regex::new("[\n\r]").unwrap();
 }
 
 pub struct RockDB {
-    phrases: Vec<String>,
+    // A map of fragments to abbreviations.
     map: Mapping,
+    // An size ordered list of fragments (biggest to smallest).
+    fragments: Vec<String>,
 }
 
 impl RockDB {
+    // Empty DB constructor.
     pub fn new() -> RockDB {
         RockDB {
-            phrases: Vec::new(),
+            fragments: Vec::new(),
             map: HashMap::new(),
         }
     }
     
+    // Load and parse a database from a text file.
+    // The format is "abbr1=fragment1, abbr2=fragment2".
     pub fn load(&mut self, path: &str) -> Result<(), Error> {
         match fs::read_to_string(path) {
-            Ok(contents) => Result::Ok(self.process(&contents)),
-            Err(_) => Result::Err(Error::new(ErrorKind::NotFound, format!("Failed to load database: {}.", path))),
+            Ok(contents) => Result::Ok(self.process(contents)),
+            Err(_) => Result::Err(Error::new(
+                ErrorKind::NotFound, 
+                format!("Failed to load database: {}.", path)
+            )),
         }
     }
     
-    fn process(&mut self, contents: &String) {
-        for token in clean_input(contents).split(",") {
+    // Parse the database file.
+    fn process(&mut self, contents: String) {
+        // Clean and split into fragments.
+        for fragment in clean_input(contents).split(",") {
             let mut abbr = String::new();
             
-            for part in token.split("=") {
+            // Split into parts:
+            for part in fragment.split("=") {
+                // The part first is the abbreviation.
                 if abbr.is_empty() {
                     abbr = String::from(part.trim());
                 }
+                // All following parts are fragments that will convert into
+                // the abbreviation.
                 else {
-                    let phrase = String::from(part.trim());
-                    self.phrases.push(phrase.clone());
-                    self.map.insert(phrase, abbr.clone());
+                    let fragment = part.trim().to_string();
+                    self.fragments.push(fragment.clone());
+                    self.map.insert(fragment, abbr.clone());
                 }
             }
         }
         
         // Sort longest to shortest.
-        self.phrases.sort_by(|a, b| b.len().cmp(&a.len()));
+        // Being an iterative process, the larger fragments are at risk of
+        // being polluted by smaller fragments. With this, the larger get
+        // priority.
+        self.fragments.sort_by(|a, b| b.len().cmp(&a.len()));
         
-        let mut extra: Mapping = HashMap::new();
+        // Breaking down larger fragments.
+        // @todo Not sure if this is necessary atm.
         
-        for (phrase, abbr) in &self.map {
-            if phrase.contains(" ") {
-                extra.insert(self.replace(phrase), abbr.to_string());
-            }
-        }
-        
-        self.map.extend(extra);
+        // let mut extra: Mapping = HashMap::new();
+        // for phrase in &self.phrases {
+        //     if phrase.contains(" ") {
+        //         let abbr = self.map.get(phrase).unwrap();
+        //         extra.insert(self.replace(phrase), abbr.to_string());
+        //     }
+        // }
+        // self.map.extend(extra);
     }
     
-    pub fn replace(&self, phrase: &String) -> String {
-        let mut updated = clean_input(phrase);
+    // Convert all fragments into abbreviations.
+    pub fn convert(&self, phrase: &String) -> String {
+        let mut updated = phrase.clone();
         
-        for phrase in &self.phrases {
-            if updated.contains(phrase) {
-                let abbr = self.map.get(phrase).unwrap();
-                updated = updated.replace(phrase, abbr);
+        // Iteratively replace. Note, 'fragments' is size-ordered so larger
+        // fragments are preserved, but also smaller fragments can post-modify
+        // changes made by the larger fragments.
+        for fragment in self.fragments.iter() {
+            if updated.contains(fragment) {
+                let abbr = self.map.get(fragment).unwrap();
+                updated = updated.replace(fragment, abbr);
             }
         }
         
-        return updated.replace(" to ", "-");
+        // Special case for 'to'.
+        updated = updated.replace(" to ", "-");
+        
+        return updated;
     }
 }
 
-pub fn clean_input(text: &String) -> String {
-    RE.replace_all(text.as_ref(), "").trim().to_string()
+// Remove newlines, trim.
+pub fn clean_input(text: String) -> String {
+    CLEAN.replace_all(text.as_ref(), "").trim().to_string()
 }
 
 impl fmt::Display for RockDB {

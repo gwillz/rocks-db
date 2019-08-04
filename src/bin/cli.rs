@@ -5,9 +5,13 @@ use std::io::{self, Write};
 mod lib;
 use lib::RockDB;
 
+// Move this to a config? arg parameter?
+const DB_PATH: &str = "description-database.txt";
+
 fn main() {
+    // Load from file.
     let mut db = RockDB::new();
-    db.load("description-database.txt").unwrap();
+    db.load(DB_PATH).unwrap();
     // println!("{}", db);
     
     println!("Enter geology descriptions: ");
@@ -15,19 +19,23 @@ fn main() {
     
     loop {
         // Read input.
-        let phrases = input(">> ").to_lowercase();
+        let phrases = input(">> ").trim().to_lowercase();
+        println!("");
+        
+        // Quit on 'q' or empty.
+        if phrases.is_empty() { break }
         if phrases.starts_with("q") { break }
         
-        println!("");
+        // Process and print.
         println!("The acronyms are:");
-        println!("{}", db.replace(&phrases));
+        println!("{}", db.convert(&phrases));
         println!("");
     }
     
     println!("Quitting.");
 }
 
-
+// Console input helper.
 fn input(prompt: &str) -> String {
     print!("{}", prompt);
     io::stdout().flush().unwrap();
