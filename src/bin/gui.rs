@@ -1,9 +1,11 @@
 extern crate iui;
+extern crate clipboard;
 
-use iui::prelude::*;
-use iui::controls::{Label, MultilineEntry, Button, Spacer, VerticalBox};
 use std::rc::Rc;
 use std::cell::RefCell;
+use iui::prelude::*;
+use iui::controls::{Label, MultilineEntry, Button, Spacer, HorizontalBox, VerticalBox};
+use clipboard::{ClipboardProvider, ClipboardContext};
 
 #[path="../lib.rs"]
 mod lib;
@@ -21,17 +23,24 @@ fn main() {
     let ui = UI::init().unwrap();
     
     let mut db = RockDB::new();
+    let mut clipboard: ClipboardContext = ClipboardProvider::new().unwrap();
     
-    let label = Label::new(&ui, "...");
-    let mut input = MultilineEntry::new(&ui);
-    let mut button = Button::new(&ui, "Go");
+    let output_label = Label::new(&ui, "...");
+    let mut input_entry = MultilineEntry::new(&ui);
+    let mut action_button = Button::new(&ui, "Go");
+    let mut copy_button = Button::new(&ui, "Copy");
     
     let mut layout = VerticalBox::new(&ui);
-    
-    layout.append(&ui, input.clone(), LayoutStrategy::Stretchy);
-    layout.append(&ui, label.clone(), LayoutStrategy::Compact);
+    layout.append(&ui, input_entry.clone(), LayoutStrategy::Stretchy);
+    layout.append(&ui, output_label.clone(), LayoutStrategy::Compact);
     layout.append(&ui, Spacer::new(&ui), LayoutStrategy::Stretchy);
-    layout.append(&ui, button.clone(), LayoutStrategy::Compact);
+    
+    let mut bbox = HorizontalBox::new(&ui);
+    bbox.append(&ui, action_button.clone(), LayoutStrategy::Stretchy);
+    bbox.append(&ui, Spacer::new(&ui), LayoutStrategy::Stretchy);
+    bbox.append(&ui, copy_button.clone(), LayoutStrategy::Stretchy);
+    
+    layout.append(&ui, bbox.clone(), LayoutStrategy::Compact);
     
     let mut window = Window::new(&ui,
         "Rocks DB", 400, 300, WindowType::NoMenubar);
@@ -53,14 +62,14 @@ fn main() {
         db: db,
     }));
     
-    input.on_changed(&ui, {
+    input_entry.on_changed(&ui, {
         let state = state.clone();
         move |val| {
             state.borrow_mut().input = val;
         }
     });
     
-    button.on_clicked(&ui, {
+    action_button.on_clicked(&ui, {
         let state = state.clone();
         move |_| {
             let mut state = state.borrow_mut();
@@ -68,14 +77,22 @@ fn main() {
         }
     });
     
+    copy_button.on_clicked(&ui, {
+        let state = state.clone();
+        move |_| {
+            let state = state.borrow();
+            clipboard.set_contents(state.output.to_owned()).unwrap();
+        }
+    });
+    
     let mut event_loop = ui.event_loop();
     event_loop.on_tick(&ui, {
         let ui = ui.clone();
-        let mut label = label.clone();
+        let mut output_label = output_label.clone();
         
         move || {
             let state = state.borrow();
-            label.set_text(&ui, &format!("{}", state.output));
+            output_label.set_text(&ui, &format!("{}", state.output));
         }
     });
     
