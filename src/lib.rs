@@ -3,9 +3,15 @@ extern crate regex;
 use std::fmt;
 use std::fs;
 use std::collections::HashMap;
+use lazy_static::lazy_static;
 use regex::Regex;
+use std::io::{Error, ErrorKind};
 
 type Mapping = HashMap<String, String>;
+
+lazy_static! {
+    static ref RE: Regex = Regex::new("[\n\r]").unwrap();
+}
 
 pub struct RockDB {
     phrases: Vec<String>,
@@ -20,16 +26,15 @@ impl RockDB {
         }
     }
     
-    pub fn load(&mut self, path: &str) {
-        let re = Regex::new("[\n\r]").unwrap();
-        
-        let contents = String::from(re.replace_all(
-            fs::read_to_string(path)
-                .expect("Failed to database file")
-                .as_ref(),
-            ""));
-        
-        for token in contents.split(",") {
+    pub fn load(&mut self, path: &str) -> Result<(), Error> {
+        match fs::read_to_string(path) {
+            Ok(contents) => Result::Ok(self.process(&contents)),
+            Err(_) => Result::Err(Error::new(ErrorKind::NotFound, format!("Failed to load database: {}.", path))),
+        }
+    }
+    
+    fn process(&mut self, contents: &String) {
+        for token in clean_input(contents).split(",") {
             let mut abbr = String::new();
             
             for part in token.split("=") {
@@ -59,7 +64,7 @@ impl RockDB {
     }
     
     pub fn replace(&self, phrase: &String) -> String {
-        let mut updated = phrase.clone();
+        let mut updated = clean_input(phrase);
         
         for phrase in &self.phrases {
             if updated.contains(phrase) {
@@ -70,18 +75,10 @@ impl RockDB {
         
         return updated.replace(" to ", "-");
     }
-    
-    pub fn replace_list<'a>(&self, phrases: impl Iterator<Item=&'a str>) -> String {
-        let mut converted: Vec<String> = Vec::new();
-        
-        for phrase in phrases {
-            let trimmed = String::from(phrase.trim());
-            converted.push(self.replace(&trimmed));
-        }
-        
-        return converted.join(", ");
-    }
-    
+}
+
+pub fn clean_input(text: &String) -> String {
+    RE.replace_all(text.as_ref(), "").trim().to_string()
 }
 
 impl fmt::Display for RockDB {

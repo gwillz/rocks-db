@@ -7,7 +7,7 @@ use lib::RockDB;
 
 fn main() {
     let mut db = RockDB::new();
-    db.load("description-database.txt");
+    db.load("description-database.txt").unwrap();
     // println!("{}", db);
     
     println!("Enter geology descriptions: ");
@@ -20,7 +20,7 @@ fn main() {
         
         println!("");
         println!("The acronyms are:");
-        println!("{}", db.replace_list(phrases.split(",")));
+        println!("{}", db.replace(&phrases));
         println!("");
     }
     
