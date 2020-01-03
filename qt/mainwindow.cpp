@@ -1,9 +1,13 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+
 #include <QFileDialog>
 #include <QClipboard>
+#include <QDesktopServices>
+#include <QLabel>
 
-QStringList loadFile(QString fileName);
+#include "librocks.h"
+
 
 MainWindow::MainWindow(QWidget *parent) :
         QMainWindow(parent),
@@ -100,6 +104,10 @@ void MainWindow::copyToClipboard() {
     
     QString symbols = ui->symbolsEdit->document()->toPlainText();
     qApp->clipboard()->setText(symbols);
+}
+
+void MainWindow::about() {
+    QDesktopServices::openUrl(QUrl("https://git.gwillz.com/gwillz/rocks-db"));
 }
 
 void MainWindow::quit() {

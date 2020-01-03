@@ -1,4 +1,5 @@
 #include "cheekytextedit.h"
+#include <QKeyEvent>
 
 CheekyTextEdit::CheekyTextEdit(QWidget *parent) :
         QPlainTextEdit(parent) {}

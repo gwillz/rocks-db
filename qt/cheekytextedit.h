@@ -2,7 +2,8 @@
 #define CHEEKYTEXTEDIT_H
 
 #include <QPlainTextEdit>
-#include <QKeyEvent>
+
+class QKeyEvent;
 
 class CheekyTextEdit : public QPlainTextEdit
 {

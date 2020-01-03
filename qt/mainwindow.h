@@ -2,8 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QLabel>
-#include "librocks.h"
+
+class QLabel;
+class RockDB;
 
 namespace Ui {
 class MainWindow;
@@ -20,6 +21,7 @@ public slots:
     // Action events.
     void load();
     void reload();
+    void about();
     void quit();
     
     // Button events.
