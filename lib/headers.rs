@@ -12,9 +12,7 @@ fn main() {
     let target_dir = match env::var("CARGO_TARGET_DIR") {
         Ok(target) => PathBuf::from(target),
         Err(_) => PathBuf::from(&crate_dir).join("target"),
-    }
-    .join(env::var("TARGET").expect("TARGET"))
-    .join(env::var("PROFILE").expect("PROFILE"));
+    };
     
     let output_file = target_dir
         .join(format!("{}.h", package_name))
