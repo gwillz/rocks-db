@@ -9,7 +9,7 @@ use std::io::{Error, ErrorKind};
 
 use std::ptr;
 use std::ffi::{CString, CStr};
-use libc::c_char;
+use libc::{c_char, size_t};
 
 type Mapping = HashMap<String, String>;
 
@@ -43,6 +43,10 @@ impl RockDB {
                 format!("Failed to load database: {}.", path)
             )),
         }
+    }
+    
+    pub fn get_fragments(&self) -> &Vec<String> {
+        &self.fragments
     }
     
     // Parse the database file.
@@ -140,7 +144,6 @@ pub unsafe extern "C" fn rocks_load(c_filename: *const c_char) -> *mut RockDB {
 
 #[no_mangle]
 pub unsafe extern "C" fn rocks_convert(db: *const RockDB, c_phrase: *const c_char) -> *const c_char {
-    
     match CStr::from_ptr(c_phrase).to_str() {
         Ok(phrase) => {
             match CString::new((*db).convert(&String::from(phrase)).as_str()) {
@@ -149,5 +152,29 @@ pub unsafe extern "C" fn rocks_convert(db: *const RockDB, c_phrase: *const c_cha
             }
         }
         Err(_) => ptr::null(),
+    }
+}
+
+#[repr(C)]
+pub struct Fragments {
+    pub items: *const *const c_char,
+    pub size: size_t,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rocks_fragments(db: *const RockDB) -> Fragments {
+    let mut fragments: Vec<*const c_char> = Vec::new();
+    
+    for fragment in (*db).get_fragments() {
+        if let Ok(c_fragment) = CString::new(fragment.as_str()) {
+            fragments.push(c_fragment.into_raw());
+        }
+    }
+    
+    let boxed: Box<*const *const c_char> = Box::new(fragments.as_ptr());
+    
+    Fragments {
+        items: *Box::into_raw(boxed),
+        size: fragments.len(),
     }
 }
