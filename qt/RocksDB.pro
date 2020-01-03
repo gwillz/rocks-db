@@ -11,26 +11,34 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = RocksDB
 TEMPLATE = app
 
+QMAKE_CXXFLAGS += -std=c++0x
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    cheekytextedit.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    cheekytextedit.h
 
 FORMS    += mainwindow.ui
 
+OTHER_FILES += \
+    install.nsi
+
+LIBROCKS_DIR = $$PWD/../lib/target
+INCLUDEPATH += $$LIBROCKS_DIR
+
 win32 {
-    LIBROCKS = $$PWD/librocks
+    LIBROCKS_LIB = librocks.dll
+}
+else {
+    LIBROCKS_LIB = librocks.so
+}
 
-    CONFIG(debug, debug|release) {
-        LIBROCKS = $$PWD/librocks/debug
-    }
-    else {
-        LIBROCKS = $$PWD/librocks/release
-    }
-
-    INCLUDEPATH += $$LIBROCKS
-    LIBS += $$LIBROCKS/librocks.dll.lib
-#    LIBS += $$LIBROCKS/librocks.dll
+CONFIG(debug, debug|release) {
+    LIBS += $$LIBROCKS_DIR/debug/$$LIBROCKS_LIB
+}
+else {
+    LIBS += $$LIBROCKS_DIR/release/$$LIBROCKS_LIB
 }
 
