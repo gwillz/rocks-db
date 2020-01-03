@@ -34,7 +34,8 @@ void MainWindow::initDB(QString fileName) {
         }
         
         // Convert file name into friendly (short) and c-string.
-        QString friendlyFileName = QFile(fileName).fileName();
+        QString friendlyFileName = QFileInfo(fileName).fileName();
+        
         QByteArray ba = fileName.toUtf8();
         const char* c_fileName = ba.constData();
         
