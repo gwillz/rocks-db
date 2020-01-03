@@ -1,8 +1,5 @@
 
 use std::io::{self, Write};
-
-#[path="../lib.rs"]
-mod lib;
 use lib::RockDB;
 
 // Move this to a config? arg parameter?

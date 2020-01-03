@@ -7,6 +7,10 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::io::{Error, ErrorKind};
 
+use std::ptr;
+use std::ffi::{CString, CStr};
+use libc::c_char;
+
 type Mapping = HashMap<String, String>;
 
 lazy_static! {
@@ -114,5 +118,36 @@ impl fmt::Display for RockDB {
             write!(f, "{} = {}\n", fragment, abbr)?;
         }
         write!(f, "")
+    }
+}
+
+// C interfaces
+
+#[no_mangle]
+pub unsafe extern "C" fn rocks_load(c_filename: *const c_char) -> *mut RockDB {
+    let mut db = RockDB::new();
+    
+    match CStr::from_ptr(c_filename).to_str() {
+        Ok(filename) => {
+            match db.load(&String::from(filename)) {
+                Ok(_) => Box::into_raw(Box::new(db)),
+                Err(_) => ptr::null_mut()
+            }
+        },
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rocks_convert(db: *const RockDB, c_phrase: *const c_char) -> *const c_char {
+    
+    match CStr::from_ptr(c_phrase).to_str() {
+        Ok(phrase) => {
+            match CString::new((*db).convert(&String::from(phrase)).as_str()) {
+                Ok(s) => s.into_raw(),
+                Err(_) => ptr::null(),
+            }
+        }
+        Err(_) => ptr::null(),
     }
 }
