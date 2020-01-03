@@ -1,8 +1,11 @@
-target
 **/*.rs.bk
-/dist
 *.exe
 *.so
 *.dll
 *.zip
-*.pro.user
+*.pro.user*
+target
+/dist
+/qt/librocks
+/qt/build
+/build*
