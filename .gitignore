@@ -9,3 +9,5 @@ target
 /qt/librocks
 /qt/build
 /build*
+description-database.txt
+!/description-database.txt
