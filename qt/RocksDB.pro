@@ -28,12 +28,8 @@ OTHER_FILES += \
 LIBROCKS_DIR = $$PWD/../lib/target
 INCLUDEPATH += $$LIBROCKS_DIR
 
-win32 {
-    LIBROCKS_LIB = librocks.dll
-}
-else {
-    LIBROCKS_LIB = librocks.so
-}
+win32: LIBROCKS_LIB = rocks.dll
+else: LIBROCKS_LIB = librocks.so
 
 CONFIG(debug, debug|release) {
     LIBS += $$LIBROCKS_DIR/debug/$$LIBROCKS_LIB
@@ -41,4 +37,3 @@ CONFIG(debug, debug|release) {
 else {
     LIBS += $$LIBROCKS_DIR/release/$$LIBROCKS_LIB
 }
-

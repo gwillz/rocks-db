@@ -6,7 +6,7 @@
 #include <QDesktopServices>
 #include <QLabel>
 
-#include "librocks.h"
+#include "rocks.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :

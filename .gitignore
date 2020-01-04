@@ -4,6 +4,7 @@
 *.dll
 *.zip
 *.pro.user*
+.qmake.stash
 target
 /dist
 /qt/librocks

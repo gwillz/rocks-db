@@ -1,6 +1,6 @@
 
 use std::io::{self, Write};
-use librocks::RockDB;
+use rocks::RockDB;
 
 // Move this to a config? arg parameter?
 const DB_PATH: &str = "description-database.txt";
