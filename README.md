@@ -32,18 +32,15 @@ cargo build --release
 cd ../qt
 qmake -o build/Makefile
 
-# For Windows
-mingw32-make -C build
-
 # For Linux
 make -C build
+./build/RocksDB
 
 # For Windows
+mingw32-make -C build
 makensis
-# Or right-click on install.nsi -> Compile NSIS script 
+# Or right-click on install.nsi -> Compile NSIS script
 
-# For Linux
-./build/RocksDB
 ```
 
 #### Windows dependencies
@@ -59,10 +56,10 @@ The Rust compiler doesn't work on XP, but the build can be done on a newer OS (7
 - Install Git for Windows [here](https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/Git-2.22.0-32-bit.exe)
 - Install Rust (GCC 32bit) [here](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe)
 - Install Qt 5.3 [here](http://mirrors.ocf.berkeley.edu/qt/archive/qt/5.3/5.3.2/qt-opensource-windows-x86-mingw482_opengl-5.3.2.exe)
-
+- Install Nullsoft installer [here](https://nsis.sourceforge.io/Download)
 
 ## Authors
-- Anish Phillips
+- Anish Philips
 - Gwilyn Saunders
 
 
