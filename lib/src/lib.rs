@@ -33,14 +33,20 @@ impl RockDB {
         }
     }
     
+    pub fn from<S: AsRef<str>>(contents: S) -> RockDB {
+        let mut db = RockDB::new();
+        db.process(contents);
+        return db
+    }
+    
     // Load and parse a database from a text file.
     // The format is "abbr1=fragment1, abbr2=fragment2".
-    pub fn load(&mut self, path: &str) -> Result<(), Error> {
-        match fs::read_to_string(path) {
+    pub fn load<S: AsRef<str>>(&mut self, path: S) -> Result<(), Error> {
+        match fs::read_to_string(path.as_ref()) {
             Ok(contents) => Result::Ok(self.process(contents)),
             Err(_) => Result::Err(Error::new(
                 ErrorKind::NotFound, 
-                format!("Failed to load database: {}.", path)
+                format!("Failed to load database: {}.", path.as_ref())
             )),
         }
     }
@@ -50,7 +56,7 @@ impl RockDB {
     }
     
     // Parse the database file.
-    fn process(&mut self, contents: String) {
+    fn process<S: AsRef<str>>(&mut self, contents: S) {
         // Clean and split into fragments.
         for fragment in clean_input(contents).split(",") {
             let mut abbr = String::new();
@@ -65,7 +71,11 @@ impl RockDB {
                 // the abbreviation.
                 else {
                     let fragment = part.trim().to_string();
-                    self.fragments.push(fragment.clone());
+                    
+                    if !self.fragments.contains(&fragment) {
+                        self.fragments.push(fragment.clone());
+                    }
+                    
                     self.map.insert(fragment, abbr.clone());
                 }
             }
@@ -91,8 +101,8 @@ impl RockDB {
     }
     
     // Convert all fragments into abbreviations.
-    pub fn convert(&self, phrase: &String) -> String {
-        let mut updated = phrase.clone();
+    pub fn convert<S: AsRef<str>>(&self, phrase: S) -> String {
+        let mut updated = String::from(phrase.as_ref());
         
         // Iteratively replace. Note, 'fragments' is size-ordered so larger
         // fragments are preserved, but also smaller fragments can post-modify
@@ -105,15 +115,11 @@ impl RockDB {
         }
         
         // Special case for 'to'.
+        // @todo Should this be a regex? Like "\w+to\w+".
         updated = updated.replace(" to ", "-");
         
         return updated;
     }
-}
-
-// Remove newlines, trim.
-pub fn clean_input(text: String) -> String {
-    CLEAN.replace_all(text.as_ref(), "").trim().to_string()
 }
 
 impl fmt::Display for RockDB {
@@ -124,6 +130,12 @@ impl fmt::Display for RockDB {
         write!(f, "")
     }
 }
+
+// Remove newlines, trim.
+pub fn clean_input<S: AsRef<str>>(text: S) -> String {
+    CLEAN.replace_all(text.as_ref(), "").trim().to_string()
+}
+
 
 // C interfaces
 
@@ -176,5 +188,69 @@ pub unsafe extern "C" fn rocks_fragments(db: *const RockDB) -> Fragments {
     Fragments {
         items: *Box::into_raw(boxed),
         size: fragments.len(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_clean_input() {
+        let actual = clean_input(" big old \n\r weird\r text \n ");
+        let expected = "big old  weird text";
+        
+        assert_eq!(actual, expected);
+    }
+    
+    #[test]
+    fn test_simple() {
+        let db = RockDB::from("o=one, tw=two, th=three");
+        
+        let fragments = db.get_fragments();
+        
+        assert_eq!(fragments.len(), 3);
+        assert_eq!(fragments[0], "three");
+        assert_eq!(fragments[1], "one");
+        assert_eq!(fragments[2], "two");
+        
+        assert_eq!(db.convert("three"), "th");
+        assert_eq!(db.convert("two"), "tw");
+        assert_eq!(db.convert("one"), "o");
+        assert_eq!(db.convert("four"), "four");
+        
+        let actual = db.convert("one two half three");
+        let expected = "o tw half th";
+        
+        assert_eq!(actual, expected);
+    }
+    
+    #[test]
+    fn test_poor_formatting() {
+        let db = RockDB::from("o=one=one\n\n,tw = two=2,,th =thre= three  ");
+        
+        let fragments = db.get_fragments();
+        
+        assert_eq!(fragments.len(), 5);
+        assert_eq!(fragments[0], "three");
+        assert_eq!(fragments[1], "thre");
+        assert_eq!(fragments[2], "one");
+        assert_eq!(fragments[3], "two");
+        assert_eq!(fragments[4], "2");
+        
+        let actual = db.convert("one two 2 three thre");
+        let expected = "o tw tw th th";
+        
+        assert_eq!(actual, expected);
+    }
+    
+    #[test]
+    fn test_special_case() {
+        let db = RockDB::from("o=one, t=two, f=five");
+        
+        let actual = db.convert("one to five");
+        let expected = "o-f";
+        
+        assert_eq!(actual, expected);
     }
 }
