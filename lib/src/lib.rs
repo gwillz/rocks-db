@@ -51,8 +51,11 @@ impl RockDB {
         }
     }
     
-    pub fn get_fragments(&self) -> &Vec<String> {
-        &self.fragments
+    // Fragments in alphabetical order.
+    pub fn get_fragments(&self) -> Vec<String> {
+        let mut copy = self.fragments.clone();
+        copy.sort_by(|a, b| a.cmp(&b));
+        copy
     }
     
     // Parse the database file.
@@ -85,7 +88,7 @@ impl RockDB {
         // Being an iterative process, the larger fragments are at risk of
         // being polluted by smaller fragments. With this, the larger get
         // priority.
-        self.fragments.sort_by(|a, b| b.len().cmp(&a.len()));
+        self.fragments.sort_unstable_by(|a, b| b.len().cmp(&a.len()));
         
         // Breaking down larger fragments.
         // @todo Not sure if this is necessary atm.
@@ -210,8 +213,8 @@ mod tests {
         let fragments = db.get_fragments();
         
         assert_eq!(fragments.len(), 3);
-        assert_eq!(fragments[0], "three");
-        assert_eq!(fragments[1], "one");
+        assert_eq!(fragments[0], "one");
+        assert_eq!(fragments[1], "three");
         assert_eq!(fragments[2], "two");
         
         assert_eq!(db.convert("three"), "th");
@@ -232,11 +235,11 @@ mod tests {
         let fragments = db.get_fragments();
         
         assert_eq!(fragments.len(), 5);
-        assert_eq!(fragments[0], "three");
-        assert_eq!(fragments[1], "thre");
-        assert_eq!(fragments[2], "one");
-        assert_eq!(fragments[3], "two");
-        assert_eq!(fragments[4], "2");
+        assert_eq!(fragments[0], "2");
+        assert_eq!(fragments[1], "one");
+        assert_eq!(fragments[2], "thre");
+        assert_eq!(fragments[3], "three");
+        assert_eq!(fragments[4], "two");
         
         let actual = db.convert("one two 2 three thre");
         let expected = "o tw tw th th";
