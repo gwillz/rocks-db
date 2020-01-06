@@ -35,7 +35,7 @@ Section "Common Files (Required)"
     
     #copy files
     File "build\release\RocksDB.exe"
-    File "..\lib\target\release\librocks.dll"
+    File "..\lib\target\release\rocks.dll"
     File "..\description-database.txt"
     
     File "$%QTDIR%\bin\Qt5Core.dll"
